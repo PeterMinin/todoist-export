@@ -8,15 +8,25 @@ import zipfile
 from contextlib import contextmanager
 from pathlib import Path
 
-# Configuration
-PORT = 3000
-NODEJS_SCRIPT = Path(__file__).parent / "src" / "index.js"
-OUTPUT_DIR = Path(R"C:\Backups")
-LOG_FILE = Path(__file__).with_suffix(".log")
-
-DOWNLOAD_URL_TEMPLATE = "/todoist-export/download?token={AUTH_TOKEN}&format=json_all"
+# Configuration: logging
+LOG_FILE = Path(__file__).with_suffix(".log")  # Next to this .py
 
 log = logging.getLogger("main")
+
+
+def get_env_var(name):
+    try:
+        return os.environ[name]
+    except KeyError:
+        log.error("Please set the %s environment variable", name)
+        raise SystemExit(1)
+
+
+# Configuration: main part
+PORT = 3000
+NODEJS_SCRIPT = Path(__file__).parent / "src" / "index.js"
+TOKEN = get_env_var("TODOIST_TOKEN")
+OUTPUT_DIR = Path(get_env_var("TODOIST_BACKUP_DIR"))
 
 
 @contextmanager
@@ -55,11 +65,6 @@ def run_server():
 
 
 def save_backup():
-    try:
-        token = os.environ["TODOIST_TOKEN"]
-    except KeyError:
-        log.error("Please set the TODOIST_TOKEN environment variable")
-        raise SystemExit(1)
     if not OUTPUT_DIR.is_dir():
         log.error("No dir '%s'", OUTPUT_DIR)
         raise SystemExit(1)
@@ -68,7 +73,8 @@ def save_backup():
     with run_server():
         conn = http.client.HTTPConnection("localhost", port=PORT)
         log.info("Requesting export")
-        conn.request("GET", DOWNLOAD_URL_TEMPLATE.format(AUTH_TOKEN=token))
+        download_url = f"/todoist-export/download?token={TOKEN}&format=json_all"
+        conn.request("GET", download_url)
         response = conn.getresponse()
         filename = response.headers.get_filename()
         log.info(f"Saving {filename} to {outputFile}")
