@@ -10,6 +10,7 @@ from pathlib import Path
 
 # Configuration
 PORT = 3000
+NODEJS_SCRIPT = Path(__file__).parent / "src" / "index.js"
 OUTPUT_DIR = Path(R"C:\Backups")
 LOG_FILE = Path(__file__).with_suffix(".log")
 
@@ -24,12 +25,13 @@ def run_server():
     if not nodePath:
         log.error("'node' not found; Node.JS not installed?")
         raise SystemExit(1)
-    indexPath = Path(__file__).parent / "src" / "index.js"
-    assert indexPath.is_file()
+    if not NODEJS_SCRIPT.is_file():
+        log.error("The Todoist export script wasn't found at '%s'", NODEJS_SCRIPT)
+        raise SystemExit(1)
     childEnv = os.environ.copy()
     childEnv["PORT"] = str(PORT)
     backgroundProcess = subprocess.Popen(
-        [nodePath, indexPath],
+        [nodePath, NODEJS_SCRIPT],
         creationflags=subprocess.CREATE_NO_WINDOW,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
