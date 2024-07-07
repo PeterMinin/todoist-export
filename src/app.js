@@ -187,27 +187,25 @@ const fetchCompleted = async function (token, offset = 0) {
       token: token,
       limit: COMPL_MAX_PAGE_SIZE,
       offset: offset,
+      annotate_notes: true,
+      annotate_items: true,
     });
   } catch (error) {
-    if (error.response?.data?.error_code !== 22) {
-      // Todoist API doesn't return the number of all items.
-      // We paginate through the results until the first call that returns "Item not found" (error 22).
-      // In case of any other error, we log the error.
-      if (error.response) {
-        logger.error({
-          status: error.response.status,
-          statusText: error.response.statusText,
-          config: error.response.config,
-          data: error.response.data,
-        });
-      } else {
-        logger.error(error);
-      }
+    if (error.response) {
+      logger.error({
+        status: error.response.status,
+        statusText: error.response.statusText,
+        config: error.response.config,
+        data: error.response.data,
+      });
+    } else {
+      logger.error(error);
     }
+
     // Independent of the error, we return a fallback so the overall export doesn't fail.
     return { items: [], projects: [], sections: [] };
   }
-  if (page.items.length === COMPL_MAX_PAGE_SIZE) {
+  if (page.items.length > 0) {
     const remainder = await fetchCompleted(token, offset + COMPL_MAX_PAGE_SIZE);
     return {
       items: page.items.concat(remainder.items),
