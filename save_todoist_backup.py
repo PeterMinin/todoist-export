@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import zipfile
+from contextlib import contextmanager
 from pathlib import Path
 
 # Configuration
@@ -17,17 +18,8 @@ DOWNLOAD_URL_TEMPLATE = "/todoist-export/download?token={AUTH_TOKEN}&format=json
 log = logging.getLogger("main")
 
 
-def save_backup():
-    try:
-        token = os.environ["TODOIST_TOKEN"]
-    except KeyError:
-        log.error("Please set the TODOIST_TOKEN environment variable")
-        raise SystemExit(1)
-    if not OUTPUT_DIR.is_dir():
-        log.error("No dir '%s'", OUTPUT_DIR)
-        raise SystemExit(1)
-    datetimeStr = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-    outputFile = OUTPUT_DIR / f"todoist_{datetimeStr}.zip"
+@contextmanager
+def run_server():
     nodePath = shutil.which("node")
     if not nodePath:
         log.error("'node' not found; Node.JS not installed?")
@@ -52,6 +44,26 @@ def save_backup():
         else:
             log.error("Unsuccessful server start")
             raise SystemExit(1)
+        yield
+    finally:
+        if backgroundProcess.poll() is None:
+            log.info("Stopping server")
+            backgroundProcess.terminate()
+            backgroundProcess.wait()
+
+
+def save_backup():
+    try:
+        token = os.environ["TODOIST_TOKEN"]
+    except KeyError:
+        log.error("Please set the TODOIST_TOKEN environment variable")
+        raise SystemExit(1)
+    if not OUTPUT_DIR.is_dir():
+        log.error("No dir '%s'", OUTPUT_DIR)
+        raise SystemExit(1)
+    datetimeStr = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
+    outputFile = OUTPUT_DIR / f"todoist_{datetimeStr}.zip"
+    with run_server():
         conn = http.client.HTTPConnection("localhost", port=PORT)
         log.info("Requesting export")
         conn.request("GET", DOWNLOAD_URL_TEMPLATE.format(AUTH_TOKEN=token))
@@ -64,11 +76,6 @@ def save_backup():
             with archive.open(filename, "w") as f:
                 while chunk := response.read(1024):
                     f.write(chunk)
-    finally:
-        if backgroundProcess.poll() is None:
-            log.info("Stopping server")
-            backgroundProcess.terminate()
-            backgroundProcess.wait()
     log.info("Done")
 
 
