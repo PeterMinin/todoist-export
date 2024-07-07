@@ -1,3 +1,24 @@
+"""
+Starts the Node.JS app, saves a full JSON dump into a timestamped ZIP
+and stops the app. Meant to be run on a schedule.
+
+Dependencies: none, only the standard lib.
+Python version: tested with 3.11, minimum likely 3.8.
+
+Configuration:
+- Follow the setup steps in the main README.
+- Set environment variables:
+    - TODOIST_TOKEN: the API token from Todoist > Settings > Integrations.
+    - TODOIST_BACKUP_DIR: where to save; the dir must exist.
+- If needed, adjust the Configuration sections in the code below.
+
+Run:
+
+   python path/to/save_todoist_backup.py
+
+Logs: by default, next to this .py.
+"""
+
 import datetime
 import http.client
 import logging
