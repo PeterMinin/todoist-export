@@ -38,6 +38,7 @@ def save_backup():
     childEnv["PORT"] = str(PORT)
     backgroundProcess = subprocess.Popen(
         [nodePath, indexPath],
+        creationflags=subprocess.CREATE_NO_WINDOW,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
